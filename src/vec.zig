@@ -52,7 +52,7 @@ pub fn Vec3(comptime T: type) type {
         }
 
         pub fn length(self: Self) f32 {
-            return @sqrt(self.length_squared());
+            return @sqrt(self.lengthSquared());
         }
 
         pub fn dot(self: Self, vec: Self) f32 {
@@ -75,8 +75,19 @@ pub fn Vec3(comptime T: type) type {
             };
         }
 
-        fn length_squared(self: Self) f32 {
+        pub fn lengthSquared(self: Self) f32 {
             return self.x * self.x + self.y * self.y + self.z * self.z;
         }
+
+        pub fn members(self: Self) [3]T {
+            return .{ self.x, self.y, self.z };
+        }
+
+        // pub fn asBytes(self: *const Self) []const u8 {
+        //     const buffer = struct {
+        //         var data: [64]u8 = undefined;
+        //     };
+        //     return std.fmt.bufPrint(&buffer.data, "{d} {d} {d}\n", .{ self.x, self.y, self.z }) catch unreachable;
+        // }
     };
 }
