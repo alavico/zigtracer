@@ -55,13 +55,6 @@ pub const Hittable = union(enum) {
     sphere: Sphere,
 
     pub fn hit(self: Hittable, ray: *const Ray, ray_t: Interval, hit_record: *Hit_Record) bool {
-        // https://raytracing.github.io/books/RayTracingInOneWeekend.html#surfacenormalsandmultipleobjects/alistofhittableobjects
-        // where does this code go?
-        // var temp_hit_rec = Hit_Record{.normal = undefined, .point = undefined, .t = undefined};
-        // var hit_anything = false;
-        // var closest = ray_tmax;
-        // --> this gets taken care of in the world objs loop
-
         switch (self) {
             inline else => |case| return case.hit(ray, ray_t, hit_record),
         }

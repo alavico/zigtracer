@@ -16,7 +16,7 @@ pub fn degreesToRadians(degrees: f32) f32 {
     return degrees * std.math.pi / 180.0;
 }
 
-pub fn getRandomFloat() anyerror!f32 {
+pub fn getRandomFloat() !f32 {
     var seed: u64 = undefined;
     std.posix.getrandom(std.mem.asBytes(&seed)) catch unreachable;
     var prng = RndGen.init(seed);
@@ -24,5 +24,6 @@ pub fn getRandomFloat() anyerror!f32 {
 }
 
 pub fn getRandomFloatRange(min: f32, max: f32) f32 {
-    return min + (max + min) * getRandomFloat();
+    const n = try getRandomFloat();
+    return min + (max - min) * n;
 }

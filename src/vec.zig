@@ -1,4 +1,5 @@
 const std = @import("std");
+const utils = @import("utils.zig");
 
 pub fn Vec3(comptime T: type) type {
     return struct {
@@ -81,6 +82,50 @@ pub fn Vec3(comptime T: type) type {
 
         pub fn members(self: Self) [3]T {
             return .{ self.x, self.y, self.z };
+        }
+
+        pub fn random() Self {
+            const x = try utils.getRandomFloat();
+            const y = try utils.getRandomFloat();
+            const z = try utils.getRandomFloat();
+            return .{
+                .x = x,
+                .y = y,
+                .z = z,
+            };
+        }
+
+        pub fn randomRange(min: f32, max: f32) Self {
+            const x = utils.getRandomFloatRange(min, max);
+            const y = utils.getRandomFloatRange(min, max);
+            const z = utils.getRandomFloatRange(min, max);
+            return .{
+                .x = x,
+                .y = y,
+                .z = z,
+            };
+        }
+
+        pub fn randomInUnitSphere() Self {
+            while (true) {
+                const p = Vec3(f32).randomRange(-1.0, 1.0);
+                if (p.lengthSquared() < 1.0) {
+                    return p;
+                }
+            }
+        }
+
+        pub fn randomUnitVector() Self {
+            return randomInUnitSphere().unitVector();
+        }
+
+        pub fn randomOnHemisphere(normal: Vec3(T)) Self {
+            const onUnitSphere = randomUnitVector();
+            if (onUnitSphere.dot(normal) > 0.0) {
+                return onUnitSphere;
+            } else {
+                return onUnitSphere.negative();
+            }
         }
 
         // pub fn asBytes(self: *const Self) []const u8 {

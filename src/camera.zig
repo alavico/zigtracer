@@ -5,6 +5,7 @@ const Hit_Record = hittable.Hit_Record;
 const Ray = @import("ray.zig").Ray;
 const Vec3 = @import("vec.zig").Vec3;
 const utils = @import("utils.zig");
+const Interval = @import("interval.zig").Interval;
 
 const INFINITY = std.math.inf(f32);
 
@@ -78,19 +79,35 @@ pub const Camera = struct {
     }
 
     fn rayColor(ray: *const Ray, world: *std.ArrayList(Hittable)) Vec3(f32) {
+        const interval = Interval{ .min = 0, .max = INFINITY };
         var hit_record = Hit_Record{ .point = undefined, .normal = undefined, .t = undefined };
-        for (world.items) |item| {
-            const hit = item.hit(ray, .{ .min = 0, .max = INFINITY }, &hit_record);
-            if (hit) {
-                // convert normal from [-1, 1] to [0, 1]
-                return hit_record.normal.add(Vec3(f32).init(1, 1, 1)).mult(0.5);
-            }
-        }
 
+        if (getClosestHit(world, ray, interval, &hit_record)) {
+            const direction = hit_record.normal.randomOnHemisphere();
+            const newRay = Ray.init(hit_record.point, direction);
+            return rayColor(&newRay, world).mult(0.5);
+        }
         const unit_dir: Vec3(f32) = ray.dir.unitVector();
         const alpha: f32 = 0.5 * (unit_dir.y + 1.0);
         const res_color = Vec3(f32).init(1, 1, 1);
         return res_color.mult(1 - alpha).add(Vec3(f32).init(0.5, 0.7, 1.0).mult(alpha));
+    }
+
+    fn getClosestHit(world: *std.ArrayList(Hittable), ray: *const Ray, interval: Interval, hit_record: *Hit_Record) bool {
+        var temp_record: Hit_Record = undefined;
+        var hit = false;
+        var closest = interval.max;
+        for (world.items) |item| {
+            if (item.hit(ray, .{ .min = interval.min, .max = closest }, &temp_record)) {
+                closest = temp_record.t;
+                hit = true;
+                // might need to do a memcopy or something similar?
+                hit_record.point = temp_record.point;
+                hit_record.t = temp_record.t;
+            }
+        }
+
+        return hit;
     }
 
     fn sampleSquare() Vec3(f32) {

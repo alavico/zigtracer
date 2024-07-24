@@ -18,11 +18,12 @@ pub fn main() !void {
     var world = std.ArrayList(Hittable).init(allocator);
     defer world.deinit();
 
+    // try world.append(.{ .sphere = Sphere.init(Vec3(f32).init(0, 0, -0.5), 0.15) });
     try world.append(.{ .sphere = Sphere.init(Vec3(f32).init(0, 0, -1), 0.5) });
     try world.append(.{ .sphere = Sphere.init(Vec3(f32).init(0, -100.5, -1), 100) });
 
     var writer = file.writer().any();
-    const image_width = 96;
+    const image_width = 960;
     const aspect_ratio = 16.0 / 9.0;
     const camera = Camera.init(image_width, aspect_ratio);
     try camera.render(&world, &writer);
