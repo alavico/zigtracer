@@ -44,6 +44,15 @@ pub fn Vec3(comptime T: type) type {
             };
         }
 
+        // multiplies element wise with another vector
+        pub fn multElem(self: Self, vec: Self) Self {
+            return .{
+                .x = self.x * vec.x,
+                .y = self.y * vec.y,
+                .z = self.z * vec.z,
+            };
+        }
+
         pub fn divide(self: Self, scalar: T) Self {
             return .{
                 .x = self.x / scalar,
@@ -119,13 +128,29 @@ pub fn Vec3(comptime T: type) type {
             return randomInUnitSphere().unitVector();
         }
 
-        pub fn randomOnHemisphere(normal: Vec3(T)) Self {
+        pub fn randomOnHemisphere(normal: Self) Self {
             const onUnitSphere = randomUnitVector();
             if (onUnitSphere.dot(normal) > 0.0) {
                 return onUnitSphere;
             } else {
                 return onUnitSphere.negative();
             }
+        }
+
+        pub fn nearZero(self: Self) bool {
+            const eps = 1e-8;
+            return (@abs(self.x) < eps and @abs(self.y) < eps and @abs(self.z) < eps);
+        }
+
+        pub fn reflect(self: Self, n: Self) Self {
+            return self.subtract(n.mult(self.dot(n) * 2));
+        }
+
+        pub fn refract(self: Self, n: Self, etai_over_etat: f32) Self {
+            const cos_theta = @min(self.dot(n) * -1, 1.0);
+            const vec_out_perp = self.add(n.mult(cos_theta)).mult(etai_over_etat);
+            const vec_out_parallel = n.mult(-@sqrt(@abs(1.0 - vec_out_perp.lengthSquared())));
+            return vec_out_perp.add(vec_out_parallel);
         }
 
         // pub fn asBytes(self: *const Self) []const u8 {

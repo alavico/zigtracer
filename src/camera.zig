@@ -1,7 +1,7 @@
 const std = @import("std");
 const hittable = @import("hittable.zig");
 const Hittable = hittable.Hittable;
-const Hit_Record = hittable.Hit_Record;
+const HitRecord = hittable.HitRecord;
 const Ray = @import("ray.zig").Ray;
 const Vec3 = @import("vec.zig").Vec3;
 const utils = @import("utils.zig");
@@ -18,11 +18,13 @@ pub const Camera = struct {
     pixel_delta_u: Vec3(f32),
     pixel_delta_v: Vec3(f32),
     pixel00_loc: Vec3(f32),
+    max_depth: comptime_int = 10,
 
     const samples_per_pixel: u32 = 10;
     const pixel_samples_scale: f32 = 1.0 / @as(f32, @floatFromInt(samples_per_pixel));
 
-    pub fn init(image_width: u32, aspect_ratio: f32) Camera {
+    //TODO refactor to make it better with default width, ar, depth?
+    pub fn init(image_width: u32, aspect_ratio: f32, max_depth: comptime_int) Camera {
         const image_height = @as(u32, @intFromFloat(@as(f32, @floatFromInt(image_width)) / aspect_ratio));
 
         const focal_length = 1.0;
@@ -46,6 +48,7 @@ pub const Camera = struct {
             .pixel_delta_u = viewport_u.divide(@as(f32, @floatFromInt(image_width))),
             .pixel_delta_v = viewport_v.divide(@as(f32, @floatFromInt(image_height))),
             .pixel00_loc = viewport_upper_left.add(pixel_delta_u.add(pixel_delta_v).mult(0.5)),
+            .max_depth = max_depth,
         };
     }
 
@@ -58,7 +61,7 @@ pub const Camera = struct {
                 var pixel_color = Vec3(f32).init(0, 0, 0);
                 for (0..samples_per_pixel) |_| {
                     const ray = self.*.getRay(@intCast(i), @intCast(j));
-                    pixel_color = pixel_color.add(rayColor(&ray, world));
+                    pixel_color = pixel_color.add(rayColor(&ray, self.max_depth, world));
                 }
                 const pixel_bytes = utils.colorHelper(pixel_color.mult(pixel_samples_scale));
                 try writer.print("{d} {d} {d}\n", .{ pixel_bytes.x, pixel_bytes.y, pixel_bytes.z });
@@ -78,14 +81,20 @@ pub const Camera = struct {
         return Ray.init(ray_origin, ray_direction);
     }
 
-    fn rayColor(ray: *const Ray, world: *std.ArrayList(Hittable)) Vec3(f32) {
-        const interval = Interval{ .min = 0, .max = INFINITY };
-        var hit_record = Hit_Record{ .point = undefined, .normal = undefined, .t = undefined };
+    fn rayColor(ray: *const Ray, depth: comptime_int, world: *std.ArrayList(Hittable)) Vec3(f32) {
+        if (depth <= 0) {
+            return Vec3(f32).init(0, 0, 0);
+        }
+        const interval = Interval{ .min = 0.001, .max = INFINITY };
+        var hit_record = HitRecord{ .point = undefined, .normal = undefined, .t = undefined, .material = undefined };
 
         if (getClosestHit(world, ray, interval, &hit_record)) {
-            const direction = hit_record.normal.randomOnHemisphere();
-            const newRay = Ray.init(hit_record.point, direction);
-            return rayColor(&newRay, world).mult(0.5);
+            var scattered: Ray = undefined;
+            var attenuation: Vec3(f32) = undefined;
+            if (hit_record.material.*.scatter(ray, &hit_record, &attenuation, &scattered)) {
+                return attenuation.multElem(rayColor(&scattered, depth - 1, world));
+            }
+            return Vec3(f32).init(0, 0, 0);
         }
         const unit_dir: Vec3(f32) = ray.dir.unitVector();
         const alpha: f32 = 0.5 * (unit_dir.y + 1.0);
@@ -93,17 +102,15 @@ pub const Camera = struct {
         return res_color.mult(1 - alpha).add(Vec3(f32).init(0.5, 0.7, 1.0).mult(alpha));
     }
 
-    fn getClosestHit(world: *std.ArrayList(Hittable), ray: *const Ray, interval: Interval, hit_record: *Hit_Record) bool {
-        var temp_record: Hit_Record = undefined;
+    fn getClosestHit(world: *std.ArrayList(Hittable), ray: *const Ray, interval: Interval, hit_record: *HitRecord) bool {
+        var temp_record: HitRecord = undefined;
         var hit = false;
         var closest = interval.max;
         for (world.items) |item| {
             if (item.hit(ray, .{ .min = interval.min, .max = closest }, &temp_record)) {
                 closest = temp_record.t;
                 hit = true;
-                // might need to do a memcopy or something similar?
-                hit_record.point = temp_record.point;
-                hit_record.t = temp_record.t;
+                @memcpy(std.mem.asBytes(hit_record), std.mem.asBytes(&temp_record));
             }
         }
 
