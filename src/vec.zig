@@ -124,6 +124,17 @@ pub fn Vec3(comptime T: type) type {
             }
         }
 
+        pub fn randomInUnitDisk() Self {
+            while (true) {
+                const rand_x = utils.getRandomFloatRange(-1, 1);
+                const rand_y = utils.getRandomFloatRange(-1, 1);
+                const p = Vec3(f32).init(rand_x, rand_y, 0);
+                if (p.lengthSquared() < 1.0) {
+                    return p;
+                }
+            }
+        }
+
         pub fn randomUnitVector() Self {
             return randomInUnitSphere().unitVector();
         }

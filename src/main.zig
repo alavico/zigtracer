@@ -36,9 +36,29 @@ pub fn main() !void {
     try world.append(.{ .sphere = Sphere.init(Vec3(f32).init(1.0, 0, -1.0), 0.5, &materail_right) });
 
     var writer = file.writer().any();
+
+    // camera init
     const image_width = 960;
     const aspect_ratio = 16.0 / 9.0;
     const max_depth = 50;
-    const camera = Camera.init(image_width, aspect_ratio, max_depth);
+    const vfov = 20.0;
+    const look_from = Vec3(f32).init(-2, 2, 1);
+    const look_at = Vec3(f32).init(0, 0, -1);
+    const v_up = Vec3(f32).init(0, 1, 0);
+    const defocus_angle = 10.0;
+    const focus_dist = 3.4;
+
+    const camera = Camera.init(
+        image_width,
+        aspect_ratio,
+        max_depth,
+        vfov,
+        look_from,
+        look_at,
+        v_up,
+        defocus_angle,
+        focus_dist,
+    );
+
     try camera.render(&world, &writer);
 }
