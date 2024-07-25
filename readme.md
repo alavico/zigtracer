@@ -1,5 +1,5 @@
 # Zigtracer
-My implementation of [Ray Tracing in One Weekend](https://raytracing.github.io/books/RayTracingInOneWeekend.html#wherenext?/afinalrender) in Zig. 
+My implementation of [Ray Tracing in One Weekend](https://raytracing.github.io/books/RayTracingInOneWeekend.htm) in Zig. 
 
 Here is an image of my final render:
 
