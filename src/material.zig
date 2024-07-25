@@ -10,6 +10,21 @@ pub const Material = union(enum) {
     dialectric: Dialectric,
 
     pub fn scatter(self: Material, ray_in: *const Ray, hit_record: *const HitRecord, attenuation: *Vec3(f32), scattered: *Ray) bool {
+        // switch (self) {
+        //     .lambertian => {
+        //         std.debug.print("lambertian albedo: \n", .{});
+        //         self.lambertian.albedo.print();
+        //     },
+        //     .metal => {
+        //         std.debug.print("metal albedo, fuzz: \n", .{});
+        //         self.metal.albedo.print();
+        //         std.debug.print("{d}\n", .{self.metal.fuzz});
+        //     },
+        //     .dialectric => {
+        //         std.debug.print("glass: \n", .{});
+        //         std.debug.print("{d}\n", .{self.dialectric.refraction_index});
+        //     },
+        // }
         switch (self) {
             inline else => |case| return case.scatter(ray_in, hit_record, attenuation, scattered),
         }

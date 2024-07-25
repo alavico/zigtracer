@@ -6,6 +6,7 @@ const Ray = @import("ray.zig").Ray;
 const Vec3 = @import("vec.zig").Vec3;
 const utils = @import("utils.zig");
 const Interval = @import("interval.zig").Interval;
+const Material = @import("material.zig").Material;
 
 const INFINITY = std.math.inf(f32);
 
@@ -37,7 +38,7 @@ pub const Camera = struct {
     look_at: Vec3(f32) = Vec3(f32).init(0, 0, -1),
     v_up: Vec3(f32) = Vec3(f32).init(0, 1, 0),
 
-    const samples_per_pixel: u32 = 20;
+    const samples_per_pixel: u32 = 500;
     const pixel_samples_scale: f32 = 1.0 / @as(f32, @floatFromInt(samples_per_pixel));
 
     //TODO refactor to make it better with default width, ar, depth?
@@ -100,7 +101,12 @@ pub const Camera = struct {
         };
     }
 
-    pub fn render(self: *const Camera, world: *std.ArrayList(Hittable), writer: *std.io.AnyWriter) anyerror!void {
+    pub fn render(
+        self: *const Camera,
+        world: *std.ArrayList(Hittable),
+        materials: *std.ArrayList(Material),
+        writer: *std.io.AnyWriter,
+    ) anyerror!void {
         const w = writer.*;
         try w.print("P3\n{d} {d}\n255\n", .{ self.image_width, self.image_height });
         for (0..self.image_height) |j| {
@@ -109,7 +115,7 @@ pub const Camera = struct {
                 var pixel_color = Vec3(f32).init(0, 0, 0);
                 for (0..samples_per_pixel) |_| {
                     const ray = self.*.getRay(@intCast(i), @intCast(j));
-                    pixel_color = pixel_color.add(rayColor(&ray, self.max_depth, world));
+                    pixel_color = pixel_color.add(rayColor(&ray, self.max_depth, world, materials));
                 }
                 const pixel_bytes = utils.colorHelper(pixel_color.mult(pixel_samples_scale));
                 try writer.print("{d} {d} {d}\n", .{ pixel_bytes.x, pixel_bytes.y, pixel_bytes.z });
@@ -130,18 +136,24 @@ pub const Camera = struct {
         return Ray.init(ray_origin, ray_direction);
     }
 
-    fn rayColor(ray: *const Ray, depth: u32, world: *std.ArrayList(Hittable)) Vec3(f32) {
+    fn rayColor(
+        ray: *const Ray,
+        depth: u32,
+        world: *std.ArrayList(Hittable),
+        materials: *std.ArrayList(Material),
+    ) Vec3(f32) {
         if (depth <= 0) {
             return Vec3(f32).init(0, 0, 0);
         }
         const interval = Interval{ .min = 0.001, .max = INFINITY };
-        var hit_record = HitRecord{ .point = undefined, .normal = undefined, .t = undefined, .material = undefined };
+        var hit_record = HitRecord{ .point = undefined, .normal = undefined, .t = undefined, .material_idx = undefined };
 
         if (getClosestHit(world, ray, interval, &hit_record)) {
             var scattered: Ray = undefined;
             var attenuation: Vec3(f32) = undefined;
-            if (hit_record.material.*.scatter(ray, &hit_record, &attenuation, &scattered)) {
-                return attenuation.multElem(rayColor(&scattered, depth - 1, world));
+            const material: Material = materials.*.items[hit_record.material_idx];
+            if (material.scatter(ray, &hit_record, &attenuation, &scattered)) {
+                return attenuation.multElem(rayColor(&scattered, depth - 1, world, materials));
             }
             return Vec3(f32).init(0, 0, 0);
         }

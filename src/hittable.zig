@@ -1,13 +1,14 @@
+const std = @import("std");
 const Vec3 = @import("vec.zig").Vec3;
 const Ray = @import("ray.zig").Ray;
 const Interval = @import("interval.zig").Interval;
-const Material = @import("material.zig").Material;
+// const Material = @import("material.zig").Material;
 
 pub const HitRecord = struct {
     point: Vec3(f32),
     normal: Vec3(f32),
     t: f32,
-    material: *Material,
+    material_idx: usize,
     front_face: bool = false,
 
     // note: outward norm must have unit length
@@ -20,11 +21,11 @@ pub const HitRecord = struct {
 pub const Sphere = struct {
     center: Vec3(f32),
     radius: f32,
-    material: *Material,
+    material_idx: usize,
 
-    pub fn init(center: Vec3(f32), radius: f32, materal: *Material) Sphere {
+    pub fn init(center: Vec3(f32), radius: f32, materal_idx: usize) Sphere {
         //TODO init material pointer
-        return .{ .center = center, .radius = @max(radius, 0), .material = materal };
+        return .{ .center = center, .radius = @max(radius, 0), .material_idx = materal_idx };
     }
 
     pub fn hit(self: Sphere, ray: *const Ray, ray_t: Interval, hit_record: *HitRecord) bool {
@@ -50,7 +51,7 @@ pub const Sphere = struct {
             hit_record.point = ray.pointAt(hit_record.*.t);
             const outward_normal: Vec3(f32) = hit_record.*.point.subtract(self.center).divide(self.radius);
             hit_record.setFaceNormal(ray, outward_normal);
-            hit_record.material = self.material;
+            hit_record.material_idx = self.material_idx;
             return true;
         }
     }
